@@ -9,8 +9,7 @@ import (
 )
 
 func TestViewRenderBasics(t *testing.T) {
-	editor := NewEditor(WithContent("Line 1\nLine 2\nLine 3\n"))
-	model := editor.(*editorModel)
+	model := NewEditor(WithContent("Line 1\nLine 2\nLine 3\n"))
 
 	// Set up viewport size
 	model.width = 40
@@ -33,10 +32,9 @@ func TestViewRenderBasics(t *testing.T) {
 
 func TestViewLineNumbers(t *testing.T) {
 	// Create editor with content
-	editor := NewEditor(
+	model := NewEditor(
 		WithContent("Line A\nLine B\nLine C\nLine D\nLine E"),
 	)
-	model := editor.(*editorModel)
 
 	// Set up viewport size
 	model.width = 40
@@ -67,8 +65,7 @@ func TestViewLineNumbers(t *testing.T) {
 }
 
 func TestViewCommandBuffer(t *testing.T) {
-	editor := NewEditor()
-	model := editor.(*editorModel)
+	model := NewEditor()
 
 	// Set up command mode
 	model.mode = ModeCommand
@@ -87,8 +84,7 @@ func TestViewCommandBuffer(t *testing.T) {
 }
 
 func TestViewStatusMessages(t *testing.T) {
-	editor := NewEditor()
-	model := editor.(*editorModel)
+	model := NewEditor()
 
 	// Set status message
 	model.statusMessage = "Test status message"
@@ -109,11 +105,10 @@ func TestViewSyntaxHighlighting(t *testing.T) {
 	// Create Go code
 	goCode := "package main\n\nfunc main() {\n\t// Comment\n\tfmt.Println(\"Hello\")\n}"
 
-	editor := NewEditor(
+	model := NewEditor(
 		WithContent(goCode),
 		WithFileName("test.go"),
 	)
-	model := editor.(*editorModel)
 
 	// Set up viewport
 	model.width = 40
@@ -136,8 +131,7 @@ func TestViewLongContent(t *testing.T) {
 		content.WriteString("\n")
 	}
 
-	editor := NewEditor(WithContent(content.String()))
-	model := editor.(*editorModel)
+	model := NewEditor(WithContent(content.String()))
 
 	// Set up viewport with limited height
 	model.width = 40

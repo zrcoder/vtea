@@ -11,11 +11,11 @@ import (
 func TestBindingRegistryBasics(t *testing.T) {
 	registry := newBindingRegistry()
 
-	registry.Add("a", func(m *editorModel) tea.Cmd {
+	registry.Add("a", func(m *Model) tea.Cmd {
 		return nil
 	}, ModeNormal, "Test binding A")
 
-	registry.Add("b", func(m *editorModel) tea.Cmd {
+	registry.Add("b", func(m *Model) tea.Cmd {
 		return nil
 	}, ModeInsert, "Test binding B")
 
@@ -35,15 +35,15 @@ func TestBindingRegistryBasics(t *testing.T) {
 func TestBindingRegistryPrefix(t *testing.T) {
 	registry := newBindingRegistry()
 
-	registry.Add("dd", func(m *editorModel) tea.Cmd {
+	registry.Add("dd", func(m *Model) tea.Cmd {
 		return nil
 	}, ModeNormal, "Delete line")
 
-	registry.Add("d$", func(m *editorModel) tea.Cmd {
+	registry.Add("d$", func(m *Model) tea.Cmd {
 		return nil
 	}, ModeNormal, "Delete to end of line")
 
-	registry.Add("dw", func(m *editorModel) tea.Cmd {
+	registry.Add("dw", func(m *Model) tea.Cmd {
 		return nil
 	}, ModeNormal, "Delete word")
 
@@ -65,15 +65,15 @@ func TestBindingRegistryPrefix(t *testing.T) {
 func TestBindingRegistryGetForMode(t *testing.T) {
 	registry := newBindingRegistry()
 
-	registry.Add("a", func(m *editorModel) tea.Cmd {
+	registry.Add("a", func(m *Model) tea.Cmd {
 		return nil
 	}, ModeNormal, "Test Normal A")
 
-	registry.Add("b", func(m *editorModel) tea.Cmd {
+	registry.Add("b", func(m *Model) tea.Cmd {
 		return nil
 	}, ModeNormal, "Test Normal B")
 
-	registry.Add("c", func(m *editorModel) tea.Cmd {
+	registry.Add("c", func(m *Model) tea.Cmd {
 		return nil
 	}, ModeInsert, "Test Insert C")
 
@@ -91,9 +91,9 @@ func TestCommandRegistry(t *testing.T) {
 	registry := newCommandRegistry()
 
 	commandCalled := false
-	model := &editorModel{} // Minimal model for testing
+	model := &Model{} // Minimal model for testing
 
-	registry.Register("test", func(m *editorModel) tea.Cmd {
+	registry.Register("test", func(m *Model) tea.Cmd {
 		commandCalled = true
 		return nil
 	})

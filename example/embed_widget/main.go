@@ -28,7 +28,7 @@ type runMsg string
 
 func NewModel() model {
 	m := model{sample: "Hello, My editor"}
-	editor := vtea.NewEditor(
+	editor := vtea.New(
 		vtea.WithFullScreen(),
 		vtea.WithFileName("main.go"),
 		vtea.WithContent(code),
@@ -47,7 +47,7 @@ func NewModel() model {
 
 type model struct {
 	sample string
-	editor vtea.Editor
+	editor *vtea.Model
 }
 
 func (m model) Init() tea.Cmd {

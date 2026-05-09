@@ -15,12 +15,6 @@ import (
 // Used to correctly calculate visible text length with syntax highlighting
 var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
 
-// renderTab renders a tab character with visual representation using spaces
-func renderTab(col int) string {
-	spaces := tabWidth - (col % tabWidth)
-	return strings.Repeat(" ", spaces)
-}
-
 // visualLength calculates the visual length of a string, counting tabs as tabWidth spaces
 func visualLength(s string, startCol int) int {
 	length := 0
@@ -80,7 +74,7 @@ func renderLineWithTabs(line string) string {
 
 // View renders the editor and returns it as a tea.View
 // This is part of the bubbletea.Model interface
-func (m *editorModel) View() tea.View {
+func (m *Model) View() tea.View {
 	// Build components from top to bottom
 	components := []string{
 		m.renderContent(), // Main editor content
@@ -103,7 +97,7 @@ func (m *editorModel) View() tea.View {
 	return v
 }
 
-func (m *editorModel) renderContent() string {
+func (m *Model) renderContent() string {
 	var sb strings.Builder
 
 	var selStart, selEnd Cursor
@@ -132,7 +126,7 @@ func (m *editorModel) renderContent() string {
 	return sb.String()
 }
 
-func (m *editorModel) renderLine(line string, rowIdx int, inVisualSelection bool, selStart, selEnd Cursor) string {
+func (m *Model) renderLine(line string, rowIdx int, inVisualSelection bool, selStart, selEnd Cursor) string {
 	displayLine := renderLineWithTabs(line)
 
 	if m.mode == ModeVisual && m.isVisualLine && inVisualSelection {
@@ -180,7 +174,7 @@ func (m *editorModel) renderLine(line string, rowIdx int, inVisualSelection bool
 	return highlightedLine
 }
 
-func (m *editorModel) renderCursor(char string) string {
+func (m *Model) renderCursor(char string) string {
 	if !m.cursorBlink {
 		return char
 	}
@@ -195,7 +189,7 @@ func (m *editorModel) renderCursor(char string) string {
 	}
 }
 
-func (m *editorModel) renderLineNumber(lineNum int, rowIdx int) string {
+func (m *Model) renderLineNumber(lineNum int, rowIdx int) string {
 	if rowIdx >= m.buffer.lineCount() {
 		return m.lineNumberStyle.Render("    ")
 	}
@@ -219,7 +213,7 @@ func abs(n int) int {
 	return n
 }
 
-func (m *editorModel) renderRegularCursorLine(line string) string {
+func (m *Model) renderRegularCursorLine(line string) string {
 	var sb strings.Builder
 	visualCol := 0
 
@@ -279,7 +273,7 @@ func (m *editorModel) renderRegularCursorLine(line string) string {
 	return sb.String()
 }
 
-func (m *editorModel) renderSyntaxHighlightedCursorLine(highlightedLine, plainLine string) string {
+func (m *Model) renderSyntaxHighlightedCursorLine(highlightedLine, plainLine string) string {
 	// For syntax highlighting with tabs, we need to:
 	// 1. Render the plain line with proper tab expansion
 	// 2. Apply cursor highlighting at the correct position
@@ -381,7 +375,7 @@ func (m *editorModel) renderSyntaxHighlightedCursorLine(highlightedLine, plainLi
 	return sb.String()
 }
 
-func (m *editorModel) renderLineWithCursorInVisualSelection(line string, rowIdx int, selStart, selEnd Cursor) string {
+func (m *Model) renderLineWithCursorInVisualSelection(line string, rowIdx int, selStart, selEnd Cursor) string {
 	var sb strings.Builder
 
 	// Get selection boundaries in buffer coordinates
@@ -513,7 +507,7 @@ func (m *editorModel) renderLineWithCursorInVisualSelection(line string, rowIdx 
 
 // renderLineWithCursorInVisualSelectionPlain handles rendering a line with a cursor in visual selection
 // when no syntax highlighting is applied.
-func (m *editorModel) renderLineWithCursorInVisualSelectionPlain(line string, rowIdx int, selStart, selEnd Cursor) string {
+func (m *Model) renderLineWithCursorInVisualSelectionPlain(line string, rowIdx int, selStart, selEnd Cursor) string {
 	var sb strings.Builder
 
 	// Get selection boundaries in buffer coordinates
@@ -599,7 +593,7 @@ func (m *editorModel) renderLineWithCursorInVisualSelectionPlain(line string, ro
 	return sb.String()
 }
 
-func (m *editorModel) renderLineInVisualSelection(line string, rowIdx int, selStart, selEnd Cursor) string {
+func (m *Model) renderLineInVisualSelection(line string, rowIdx int, selStart, selEnd Cursor) string {
 	var sb strings.Builder
 
 	// Get selection boundaries in buffer coordinates
@@ -719,7 +713,7 @@ func (m *editorModel) renderLineInVisualSelection(line string, rowIdx int, selSt
 
 // renderLineInVisualSelectionPlain handles rendering a line in visual selection
 // when no syntax highlighting is applied.
-func (m *editorModel) renderLineInVisualSelectionPlain(line string, rowIdx int, selStart, selEnd Cursor) string {
+func (m *Model) renderLineInVisualSelectionPlain(line string, rowIdx int, selStart, selEnd Cursor) string {
 	var sb strings.Builder
 
 	// Get selection boundaries in buffer coordinates
@@ -776,7 +770,7 @@ func (m *editorModel) renderLineInVisualSelectionPlain(line string, rowIdx int, 
 	return sb.String()
 }
 
-func (m editorModel) getVisibleContent() []string {
+func (m Model) getVisibleContent() []string {
 	startLine := m.viewport.YOffset()
 	endLine := startLine + m.height
 
@@ -798,7 +792,7 @@ func (m editorModel) getVisibleContent() []string {
 	return contentLines
 }
 
-func (m *editorModel) renderStatusLine() string {
+func (m *Model) renderStatusLine() string {
 	status := m.getStatusText()
 	cursorPos := fmt.Sprintf(" %d:%d ", m.cursor.Row+1, m.cursor.Col+1)
 
@@ -807,7 +801,7 @@ func (m *editorModel) renderStatusLine() string {
 	return m.statusStyle.Render(status + strings.Repeat(" ", padding) + cursorPos)
 }
 
-func (m *editorModel) getStatusText() string {
+func (m *Model) getStatusText() string {
 	if m.mode == ModeCommand {
 		return ":" + m.commandBuffer
 	}
@@ -824,12 +818,12 @@ func (m *editorModel) getStatusText() string {
 	return status
 }
 
-func (m *editorModel) isLineInYankHighlight(rowIdx int) bool {
+func (m *Model) isLineInYankHighlight(rowIdx int) bool {
 	return m.yankHighlight.Active &&
 		rowIdx >= m.yankHighlight.Start.Row && rowIdx <= m.yankHighlight.End.Row
 }
 
-func (m *editorModel) getYankHighlightBounds(rowIdx int) (int, int) {
+func (m *Model) getYankHighlightBounds(rowIdx int) (int, int) {
 	if !m.yankHighlight.Active || !m.isLineInYankHighlight(rowIdx) {
 		return -1, -1
 	}
@@ -850,7 +844,7 @@ func (m *editorModel) getYankHighlightBounds(rowIdx int) (int, int) {
 	return start, end
 }
 
-func (m *editorModel) renderLineWithYankHighlight(line string, rowIdx int) string {
+func (m *Model) renderLineWithYankHighlight(line string, rowIdx int) string {
 	var sb strings.Builder
 	highlightStyle := lipgloss.NewStyle().Background(lipgloss.Color("7"))
 

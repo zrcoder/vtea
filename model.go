@@ -16,16 +16,16 @@ import (
 	"golang.design/x/clipboard"
 )
 
-// EditorMode represents the current mode of the editor
-type EditorMode int
+// Mode represents the current mode of the editor
+type Mode int
 
-type EditorModeMsg struct {
-	Mode EditorMode
+type ModeMsg struct {
+	Mode Mode
 }
 
 const (
 	// ModeNormal is the default mode for navigation and commands
-	ModeNormal EditorMode = iota
+	ModeNormal Mode = iota
 	// ModeInsert is for inserting and editing text
 	ModeInsert
 	// ModeVisual is for selecting text
@@ -38,45 +38,12 @@ const (
 type cursorBlinkMsg time.Time
 
 // String returns the string representation of the editor mode
-func (m EditorMode) String() string {
+func (m Mode) String() string {
 	return [...]string{"NORMAL", "INSERT", "VISUAL", "COMMAND"}[m]
 }
 
-// Editor defines the interface for interacting with the editor component
-type Editor interface {
-	// Implements the bubbletea.Model interface
-	tea.Model
-
-	// AddBinding registers a new key binding
-	AddBinding(binding KeyBinding)
-
-	// AddCommand registers a new command that can be executed in command mode
-	AddCommand(name string, cmd CommandFn)
-
-	// GetBuffer returns the current buffer
-	GetBuffer() Buffer
-
-	// GetMode returns the current editor mode
-	GetMode() EditorMode
-
-	// SetMode changes the current editor mode
-	SetMode(mode EditorMode) tea.Cmd
-
-	// SetStatusMessage sets the status message displayed in the status bar
-	SetStatusMessage(msg string) tea.Cmd
-
-	// SetSize updates the editor's dimensions when the terminal window is resized
-	SetSize(width, height int) (tea.Model, tea.Cmd)
-
-	// Tick sends a tick message to the editor
-	Tick() tea.Cmd
-
-	// Reset restores the editor to its initial state
-	Reset() tea.Cmd
-}
-
-// editorModel implements the Editor interface and maintains the editor state
-type editorModel struct {
+// Model implements the tea.Model interface
+type Model struct {
 	buffer         *buffer // Text buffer with undo/redo
 	cursor         Cursor  // Current cursor position
 	yankBuffer     string  // Clipboard
@@ -84,14 +51,14 @@ type editorModel struct {
 	fullScreen     bool    // Whether to use the full terminal screen
 	initialContent string  // Initial content used to create the editor
 
-	mode              EditorMode // Current mode
-	enableCommandMode bool       // Whether command mode is enabled
-	desiredCol        int        // Desired column position for vertical movements
-	keySequence       []string   // Current key sequence for vim-like commands
-	lastKeyTime       time.Time  // Time of the last keypress for sequence timeout
-	commandBuffer     string     // Command mode input buffer
-	visualStart       Cursor     // Start position of visual selection
-	isVisualLine      bool       // Whether we're in line-wise visual mode (V)
+	mode              Mode      // Current mode
+	enableCommandMode bool      // Whether command mode is enabled
+	desiredCol        int       // Desired column position for vertical movements
+	keySequence       []string  // Current key sequence for vim-like commands
+	lastKeyTime       time.Time // Time of the last keypress for sequence timeout
+	commandBuffer     string    // Command mode input buffer
+	visualStart       Cursor    // Start position of visual selection
+	isVisualLine      bool      // Whether we're in line-wise visual mode (V)
 
 	countPrefix int // Numeric prefix for commands like "10j"
 
@@ -144,8 +111,7 @@ type options struct {
 // EditorOption is a function that modifies the editor options
 type EditorOption func(*options)
 
-// NewEditor creates a new editor instance with the provided options
-func NewEditor(opts ...EditorOption) Editor {
+func New(opts ...EditorOption) *Model {
 	options := &options{
 		Content:                "",
 		EnableCommandMode:      true,
@@ -171,7 +137,7 @@ func NewEditor(opts ...EditorOption) Editor {
 
 	cpErr := clipboard.Init()
 
-	m := &editorModel{
+	m := &Model{
 		buffer:                 newBuffer(options.Content),
 		mode:                   ModeNormal,
 		fullScreen:             options.FullScreen,
@@ -225,13 +191,12 @@ func cursorBlinkCmd() tea.Cmd {
 }
 
 // Init initializes the editor model and returns the cursor blink command
-func (m *editorModel) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	return cursorBlinkCmd()
 }
 
 // Update handles messages and updates the editor state
-// This is part of the tea.Model interface
-func (m *editorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -291,7 +256,7 @@ func (m *editorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // GetSelectionBoundary returns the start and end cursors of the current selection
 // in visual mode. It ensures the start cursor is always before the end cursor.
-func (m *editorModel) GetSelectionBoundary() (Cursor, Cursor) {
+func (m *Model) GetSelectionBoundary() (Cursor, Cursor) {
 	var start, end Cursor
 
 	// Determine start and end positions based on cursor and visual start
@@ -314,7 +279,7 @@ func (m *editorModel) GetSelectionBoundary() (Cursor, Cursor) {
 }
 
 // SetSize updates the editor's dimensions when the terminal window is resized
-func (m *editorModel) SetSize(width, height int) (tea.Model, tea.Cmd) {
+func (m *Model) SetSize(width, height int) (*Model, tea.Cmd) {
 	m.width = width
 	m.height = height
 
@@ -340,7 +305,7 @@ func (m *editorModel) SetSize(width, height int) (tea.Model, tea.Cmd) {
 }
 
 // handleKeypress processes keyboard input based on the current editor mode
-func (m *editorModel) handleKeypress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+func (m *Model) handleKeypress(msg tea.KeyPressMsg) (*Model, tea.Cmd) {
 	switch m.mode {
 	case ModeNormal:
 		// Normal mode uses key sequence handling for multi-key commands
@@ -392,8 +357,8 @@ func (m *editorModel) handleKeypress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 // handlePrefixKeypress creates a handler for key sequences and numeric prefixes
 // This implements Vim-style command sequences like "3dw" or "dd"
-func (m *editorModel) handlePrefixKeypress(mode EditorMode) func(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	return func(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+func (m *Model) handlePrefixKeypress(mode Mode) func(tea.KeyPressMsg) (*Model, tea.Cmd) {
+	return func(msg tea.KeyPressMsg) (*Model, tea.Cmd) {
 		now := time.Now()
 
 		// Check for key sequence timeout - if the sequence hasn't been completed
@@ -510,21 +475,21 @@ func (m *editorModel) handlePrefixKeypress(mode EditorMode) func(msg tea.KeyPres
 }
 
 // GetBuffer returns a wrapped buffer that provides the Buffer interface
-func (m *editorModel) GetBuffer() Buffer {
+func (m *Model) GetBuffer() Buffer {
 	return &wrappedBuffer{m}
 }
 
 // AddBinding registers a new key binding with the editor
-func (m *editorModel) AddBinding(binding KeyBinding) {
-	m.registry.Add(binding.Key, func(em *editorModel) tea.Cmd {
+func (m *Model) AddBinding(binding KeyBinding) {
+	m.registry.Add(binding.Key, func(em *Model) tea.Cmd {
 		return binding.Handler(m.GetBuffer())
 	}, binding.Mode, binding.Description)
 }
 
 // AddCommand registers a new command that can be executed in command mode
 // Commands are invoked by typing ":command" in command mode
-func (m *editorModel) AddCommand(name string, cmd CommandFn) {
-	internalCmd := func(m *editorModel) tea.Cmd {
+func (m *Model) AddCommand(name string, cmd CommandFn) {
+	internalCmd := func(m *Model) tea.Cmd {
 		// Parse command arguments from the command buffer
 		args := strings.Fields(m.commandBuffer)
 		if len(args) > 0 {
@@ -538,15 +503,15 @@ func (m *editorModel) AddCommand(name string, cmd CommandFn) {
 }
 
 // GetMode returns the current editor mode
-func (m *editorModel) GetMode() EditorMode {
+func (m *Model) GetMode() Mode {
 	return m.mode
 }
 
 // SetMode changes the current editor mode
-func (m *editorModel) SetMode(mode EditorMode) tea.Cmd {
+func (m *Model) SetMode(mode Mode) tea.Cmd {
 	cmds := []tea.Cmd{
 		func() tea.Msg {
-			return EditorModeMsg{Mode: mode}
+			return ModeMsg{Mode: mode}
 		},
 	}
 	var cmd tea.Cmd
@@ -561,13 +526,13 @@ func (m *editorModel) SetMode(mode EditorMode) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-func (m *editorModel) Tick() tea.Cmd {
+func (m *Model) Tick() tea.Cmd {
 	return cursorBlinkCmd()
 }
 
 // SetStatusMessage sets the status message shown in the status bar
 // and returns a command that can be used with bubbletea
-func (m *editorModel) SetStatusMessage(msg string) tea.Cmd {
+func (m *Model) SetStatusMessage(msg string) tea.Cmd {
 	return func() tea.Msg {
 		m.statusMessage = msg
 		return nil
@@ -583,7 +548,7 @@ func SetStatusMsg(msg string) tea.Cmd {
 }
 
 // Reset restores the editor to its initial state
-func (m *editorModel) Reset() tea.Cmd {
+func (m *Model) Reset() tea.Cmd {
 	// Save current state for undo if needed
 	m.buffer.saveUndoState(m.cursor)
 

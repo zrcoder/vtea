@@ -23,7 +23,7 @@ type CommandMsg struct {
 
 // withCountPrefix executes a function multiple times based on the numeric prefix
 // This implements commands like "5j" to move down 5 lines
-func withCountPrefix(model *editorModel, fn func()) {
+func withCountPrefix(model *Model, fn func()) {
 	count := model.countPrefix
 	for range count {
 		fn()
@@ -33,7 +33,7 @@ func withCountPrefix(model *editorModel, fn func()) {
 
 // switchMode changes the editor mode and performs necessary setup for the new mode
 // Different modes require different cursor handling and UI state
-func switchMode(model *editorModel, newMode EditorMode) tea.Cmd {
+func switchMode(model *Model, newMode Mode) tea.Cmd {
 	model.mode = newMode
 
 	switch newMode {
@@ -51,11 +51,11 @@ func switchMode(model *editorModel, newMode EditorMode) tea.Cmd {
 	}
 
 	return func() tea.Msg {
-		return EditorModeMsg{newMode}
+		return ModeMsg{newMode}
 	}
 }
 
-func registerBindings(m *editorModel) {
+func registerBindings(m *Model) {
 	m.registry.Add("i", enterModeInsert, ModeNormal, "Enter insert mode")
 	m.registry.Add("v", beginVisualSelection, ModeNormal, "Enter visual mode")
 	m.registry.Add("V", beginVisualLineSelection, ModeNormal, "Enter visual line mode")
@@ -82,7 +82,7 @@ func registerBindings(m *editorModel) {
 	m.registry.Add("yiw", yankInnerWord, ModeNormal, "Yank inner word")
 	m.registry.Add("ciw", changeInnerWord, ModeNormal, "Change inner word")
 
-	for _, mode := range []EditorMode{ModeNormal, ModeVisual} {
+	for _, mode := range []Mode{ModeNormal, ModeVisual} {
 		m.registry.Add("h", moveCursorLeft, mode, "Move cursor left")
 		m.registry.Add("j", moveCursorDown, mode, "Move cursor down")
 		m.registry.Add("k", moveCursorUp, mode, "Move cursor up")
@@ -130,7 +130,7 @@ func registerBindings(m *editorModel) {
 	m.commands.Register("reset", resetEditor)
 }
 
-func toggleRelativeLineNumbers(model *editorModel) tea.Cmd {
+func toggleRelativeLineNumbers(model *Model) tea.Cmd {
 	model.relativeNumbers = !model.relativeNumbers
 	if model.relativeNumbers {
 		return SetStatusMsg("relative line numbers: on")
@@ -139,18 +139,18 @@ func toggleRelativeLineNumbers(model *editorModel) tea.Cmd {
 	}
 }
 
-func clearBuffer(model *editorModel) tea.Cmd {
+func clearBuffer(model *Model) tea.Cmd {
 	model.buffer.saveUndoState(model.cursor)
 	model.buffer.clear()
 	model.cursor = newCursor(0, 0)
 	return SetStatusMsg("buffer cleared")
 }
 
-func resetEditor(model *editorModel) tea.Cmd {
+func resetEditor(model *Model) tea.Cmd {
 	return model.Reset()
 }
 
-func moveToFirstNonWhitespace(model *editorModel) tea.Cmd {
+func moveToFirstNonWhitespace(model *Model) tea.Cmd {
 	line := model.buffer.Line(model.cursor.Row)
 	for i, char := range line {
 		if char != ' ' && char != '\t' {
@@ -162,7 +162,7 @@ func moveToFirstNonWhitespace(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func deleteToEndOfLine(model *editorModel) tea.Cmd {
+func deleteToEndOfLine(model *Model) tea.Cmd {
 	row := model.cursor.Row
 	col := model.cursor.Col
 	line := model.buffer.Line(row)
@@ -181,58 +181,58 @@ func deleteToEndOfLine(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func exitModeCommand(model *editorModel) tea.Cmd {
+func exitModeCommand(model *Model) tea.Cmd {
 	return switchMode(model, ModeNormal)
 }
 
-func exitModeVisual(model *editorModel) tea.Cmd {
+func exitModeVisual(model *Model) tea.Cmd {
 	return switchMode(model, ModeNormal)
 }
 
-func exitModeInsert(model *editorModel) tea.Cmd {
+func exitModeInsert(model *Model) tea.Cmd {
 	return switchMode(model, ModeNormal)
 }
 
-func enterModeInsert(model *editorModel) tea.Cmd {
+func enterModeInsert(model *Model) tea.Cmd {
 	return switchMode(model, ModeInsert)
 }
 
-func enterModeCommand(model *editorModel) tea.Cmd {
+func enterModeCommand(model *Model) tea.Cmd {
 	return switchMode(model, ModeCommand)
 }
 
-func beginVisualSelection(model *editorModel) tea.Cmd {
+func beginVisualSelection(model *Model) tea.Cmd {
 	model.visualStart = model.cursor.Clone()
 	model.isVisualLine = false
 	model.statusMessage = "-- VISUAL --"
 	return switchMode(model, ModeVisual)
 }
 
-func beginVisualLineSelection(model *editorModel) tea.Cmd {
+func beginVisualLineSelection(model *Model) tea.Cmd {
 	model.visualStart = newCursor(model.cursor.Row, 0)
 	model.isVisualLine = true
 	model.statusMessage = "-- VISUAL LINE --"
 	return switchMode(model, ModeVisual)
 }
 
-func appendAfterCursor(model *editorModel) tea.Cmd {
+func appendAfterCursor(model *Model) tea.Cmd {
 	if model.cursor.Col < model.buffer.lineLength(model.cursor.Row) {
 		model.cursor.Col++
 	}
 	return switchMode(model, ModeInsert)
 }
 
-func appendAtEndOfLine(model *editorModel) tea.Cmd {
+func appendAtEndOfLine(model *Model) tea.Cmd {
 	model.cursor.Col = model.buffer.lineLength(model.cursor.Row)
 	return switchMode(model, ModeInsert)
 }
 
-func insertAtStartOfLine(model *editorModel) tea.Cmd {
+func insertAtStartOfLine(model *Model) tea.Cmd {
 	model.cursor.Col = 0
 	return switchMode(model, ModeInsert)
 }
 
-func openLineBelow(model *editorModel) tea.Cmd {
+func openLineBelow(model *Model) tea.Cmd {
 	model.buffer.saveUndoState(model.cursor)
 
 	model.buffer.insertLine(model.cursor.Row+1, "")
@@ -242,7 +242,7 @@ func openLineBelow(model *editorModel) tea.Cmd {
 	return switchMode(model, ModeInsert)
 }
 
-func openLineAbove(model *editorModel) tea.Cmd {
+func openLineAbove(model *Model) tea.Cmd {
 	model.buffer.saveUndoState(model.cursor)
 
 	model.buffer.insertLine(model.cursor.Row, "")
@@ -251,7 +251,7 @@ func openLineAbove(model *editorModel) tea.Cmd {
 	return switchMode(model, ModeInsert)
 }
 
-func insertCharacter(model *editorModel, char string) (tea.Model, tea.Cmd) {
+func insertCharacter(model *Model, char string) (*Model, tea.Cmd) {
 	model.buffer.saveUndoState(model.cursor)
 
 	if model.cursor.Col > model.buffer.lineLength(model.cursor.Row) {
@@ -266,7 +266,7 @@ func insertCharacter(model *editorModel, char string) (tea.Model, tea.Cmd) {
 	return model, nil
 }
 
-func handleInsertBackspace(model *editorModel) tea.Cmd {
+func handleInsertBackspace(model *Model) tea.Cmd {
 	model.buffer.saveUndoState(model.cursor)
 
 	if model.cursor.Col > 0 {
@@ -285,7 +285,7 @@ func handleInsertBackspace(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func handleInsertTab(model *editorModel) tea.Cmd {
+func handleInsertTab(model *Model) tea.Cmd {
 	model.buffer.saveUndoState(model.cursor)
 
 	line := model.buffer.Line(model.cursor.Row)
@@ -295,7 +295,7 @@ func handleInsertTab(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func handleInsertEnterKey(m *editorModel) tea.Cmd {
+func handleInsertEnterKey(m *Model) tea.Cmd {
 	m.buffer.saveUndoState(m.cursor)
 
 	currentLine := m.buffer.Line(m.cursor.Row)
@@ -313,7 +313,7 @@ func handleInsertEnterKey(m *editorModel) tea.Cmd {
 	return nil
 }
 
-func moveCursorLeft(model *editorModel) tea.Cmd {
+func moveCursorLeft(model *Model) tea.Cmd {
 	withCountPrefix(model, func() {
 		if model.cursor.Col > 0 {
 			model.cursor.Col--
@@ -323,7 +323,7 @@ func moveCursorLeft(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func moveCursorDown(model *editorModel) tea.Cmd {
+func moveCursorDown(model *Model) tea.Cmd {
 	withCountPrefix(model, func() {
 		if model.cursor.Row < model.buffer.lineCount()-1 {
 			model.cursor.Row++
@@ -334,7 +334,7 @@ func moveCursorDown(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func moveCursorUp(model *editorModel) tea.Cmd {
+func moveCursorUp(model *Model) tea.Cmd {
 	withCountPrefix(model, func() {
 		if model.cursor.Row > 0 {
 			model.cursor.Row--
@@ -345,7 +345,7 @@ func moveCursorUp(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func moveCursorRight(model *editorModel) tea.Cmd {
+func moveCursorRight(model *Model) tea.Cmd {
 	lineLen := model.buffer.lineLength(model.cursor.Row)
 
 	withCountPrefix(model, func() {
@@ -357,7 +357,7 @@ func moveCursorRight(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func moveCursorRightOrNextLine(model *editorModel) tea.Cmd {
+func moveCursorRightOrNextLine(model *Model) tea.Cmd {
 	lineLen := model.buffer.lineLength(model.cursor.Row)
 	if lineLen > 0 && model.cursor.Col < lineLen-1 {
 		model.cursor.Col++
@@ -370,12 +370,12 @@ func moveCursorRightOrNextLine(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func moveToStartOfLine(model *editorModel) tea.Cmd {
+func moveToStartOfLine(model *Model) tea.Cmd {
 	model.cursor.Col = 0
 	return nil
 }
 
-func moveToEndOfLine(model *editorModel) tea.Cmd {
+func moveToEndOfLine(model *Model) tea.Cmd {
 	lineLen := model.buffer.lineLength(model.cursor.Row)
 	if lineLen > 0 {
 		model.cursor.Col = lineLen - 1
@@ -386,7 +386,7 @@ func moveToEndOfLine(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func moveToStartOfDocument(model *editorModel) tea.Cmd {
+func moveToStartOfDocument(model *Model) tea.Cmd {
 	model.cursor.Row = 0
 	model.cursor.Col = min(model.desiredCol, model.buffer.lineLength(model.cursor.Row)-1)
 	model.keySequence = []string{}
@@ -394,7 +394,7 @@ func moveToStartOfDocument(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func moveToEndOfDocument(model *editorModel) tea.Cmd {
+func moveToEndOfDocument(model *Model) tea.Cmd {
 	model.cursor.Row = model.buffer.lineCount() - 1
 	model.cursor.Col = min(model.desiredCol, model.buffer.lineLength(model.cursor.Row)-1)
 	model.keySequence = []string{}
@@ -402,8 +402,8 @@ func moveToEndOfDocument(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func handleArrowKeys(key string) func(*editorModel) tea.Cmd {
-	return func(m *editorModel) tea.Cmd {
+func handleArrowKeys(key string) func(*Model) tea.Cmd {
+	return func(m *Model) tea.Cmd {
 		switch key {
 		case "up":
 			return moveCursorUp(m)
@@ -418,7 +418,7 @@ func handleArrowKeys(key string) func(*editorModel) tea.Cmd {
 	}
 }
 
-func executeCommand(model *editorModel) tea.Cmd {
+func executeCommand(model *Model) tea.Cmd {
 	command := model.commandBuffer
 	model.commandBuffer = ""
 	return func() tea.Msg {
@@ -426,19 +426,19 @@ func executeCommand(model *editorModel) tea.Cmd {
 	}
 }
 
-func addCommandCharacter(model *editorModel, char string) (tea.Model, tea.Cmd) {
+func addCommandCharacter(model *Model, char string) (*Model, tea.Cmd) {
 	model.commandBuffer += char
 	return model, nil
 }
 
-func commandBackspace(model *editorModel) tea.Cmd {
+func commandBackspace(model *Model) tea.Cmd {
 	if len(model.commandBuffer) > 0 {
 		model.commandBuffer = model.commandBuffer[:len(model.commandBuffer)-1]
 	}
 	return nil
 }
 
-func moveToNextWordStart(model *editorModel) tea.Cmd {
+func moveToNextWordStart(model *Model) tea.Cmd {
 	currRow := model.cursor.Row
 	if currRow >= model.buffer.lineCount() {
 		return nil
@@ -470,7 +470,7 @@ func moveToNextWordStart(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func moveToPrevWordStart(model *editorModel) tea.Cmd {
+func moveToPrevWordStart(model *Model) tea.Cmd {
 	currRow := model.cursor.Row
 	if currRow >= model.buffer.lineCount() {
 		return nil
@@ -501,15 +501,15 @@ func moveToPrevWordStart(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func undo(model *editorModel) tea.Cmd {
+func undo(model *Model) tea.Cmd {
 	return model.buffer.undo(model.cursor)
 }
 
-func redo(model *editorModel) tea.Cmd {
+func redo(model *Model) tea.Cmd {
 	return model.buffer.redo(model.cursor)
 }
 
-func deleteCharAtCursor(model *editorModel) tea.Cmd {
+func deleteCharAtCursor(model *Model) tea.Cmd {
 	model.buffer.saveUndoState(model.cursor)
 
 	lineLen := model.buffer.lineLength(model.cursor.Row)
@@ -525,7 +525,7 @@ func deleteCharAtCursor(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func setupYankHighlight(model *editorModel, start, end Cursor, text string, isLinewise bool) {
+func setupYankHighlight(model *Model, start, end Cursor, text string, isLinewise bool) {
 	model.yankBuffer = text
 	clipboard.Write(clipboard.FmtText, []byte(model.yankBuffer))
 	model.statusMessage = fmt.Sprintf("yanked %d characters", len(text))
@@ -536,7 +536,7 @@ func setupYankHighlight(model *editorModel, start, end Cursor, text string, isLi
 	model.yankHighlight.Active = true
 }
 
-func yankLine(model *editorModel) tea.Cmd {
+func yankLine(model *Model) tea.Cmd {
 	line := model.buffer.Line(model.cursor.Row)
 
 	setupYankHighlight(
@@ -551,7 +551,7 @@ func yankLine(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func deleteLine(model *editorModel) tea.Cmd {
+func deleteLine(model *Model) tea.Cmd {
 	model.buffer.saveUndoState(model.cursor)
 
 	row := model.cursor.Row
@@ -576,7 +576,7 @@ func deleteLine(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func pasteAfter(model *editorModel) tea.Cmd {
+func pasteAfter(model *Model) tea.Cmd {
 	if model.yankBuffer == "" {
 		data := clipboard.Read(clipboard.FmtText)
 		model.yankBuffer = string(data)
@@ -664,7 +664,7 @@ func pasteAfter(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func pasteBefore(model *editorModel) tea.Cmd {
+func pasteBefore(model *Model) tea.Cmd {
 	if model.yankBuffer == "" {
 		data := clipboard.Read(clipboard.FmtText)
 		model.yankBuffer = string(data)
@@ -734,7 +734,7 @@ func pasteBefore(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func pasteLineAfter(model *editorModel) tea.Cmd {
+func pasteLineAfter(model *Model) tea.Cmd {
 	if model.yankBuffer == "" {
 		data := clipboard.Read(clipboard.FmtText)
 		model.yankBuffer = string(data)
@@ -752,7 +752,7 @@ func pasteLineAfter(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func pasteLineBefore(model *editorModel) tea.Cmd {
+func pasteLineBefore(model *Model) tea.Cmd {
 	if model.yankBuffer == "" {
 		data := clipboard.Read(clipboard.FmtText)
 		model.yankBuffer = string(data)
@@ -769,7 +769,7 @@ func pasteLineBefore(model *editorModel) tea.Cmd {
 	return nil
 }
 
-func yankVisualSelection(model *editorModel) tea.Cmd {
+func yankVisualSelection(model *Model) tea.Cmd {
 	start, end := model.GetSelectionBoundary()
 	selectedText := model.buffer.getRange(start, end)
 
@@ -781,7 +781,7 @@ func yankVisualSelection(model *editorModel) tea.Cmd {
 	return switchMode(model, ModeNormal)
 }
 
-func deleteVisualSelection(model *editorModel) tea.Cmd {
+func deleteVisualSelection(model *Model) tea.Cmd {
 	model.buffer.saveUndoState(model.cursor)
 	start, end := model.GetSelectionBoundary()
 
@@ -800,7 +800,7 @@ func deleteVisualSelection(model *editorModel) tea.Cmd {
 	return switchMode(model, ModeNormal)
 }
 
-func replaceVisualSelectionWithYank(model *editorModel) tea.Cmd {
+func replaceVisualSelectionWithYank(model *Model) tea.Cmd {
 	model.buffer.saveUndoState(model.cursor)
 	start, end := model.GetSelectionBoundary()
 	oldSelection := model.buffer.deleteRange(start, end)
@@ -823,7 +823,7 @@ func replaceVisualSelectionWithYank(model *editorModel) tea.Cmd {
 	return switchMode(model, ModeNormal)
 }
 
-func performWordOperation(model *editorModel, operation string) tea.Cmd {
+func performWordOperation(model *Model, operation string) tea.Cmd {
 	start, end := getWordBoundary(model)
 	if start == end {
 		return nil
@@ -862,19 +862,19 @@ func performWordOperation(model *editorModel, operation string) tea.Cmd {
 	return nil
 }
 
-func deleteInnerWord(model *editorModel) tea.Cmd {
+func deleteInnerWord(model *Model) tea.Cmd {
 	return performWordOperation(model, "delete")
 }
 
-func yankInnerWord(model *editorModel) tea.Cmd {
+func yankInnerWord(model *Model) tea.Cmd {
 	return performWordOperation(model, "yank")
 }
 
-func changeInnerWord(model *editorModel) tea.Cmd {
+func changeInnerWord(model *Model) tea.Cmd {
 	return performWordOperation(model, "change")
 }
 
-func getWordBoundary(model *editorModel) (int, int) {
+func getWordBoundary(model *Model) (int, int) {
 	line := model.buffer.Line(model.cursor.Row)
 	if len(line) == 0 {
 		return 0, 0

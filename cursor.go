@@ -19,7 +19,7 @@ func newCursor(row, col int) Cursor {
 
 // ensureCursorVisible scrolls the viewport to make sure the cursor is visible
 // This is called whenever the cursor moves or the window is resized
-func (m *editorModel) ensureCursorVisible() {
+func (m *Model) ensureCursorVisible() {
 	// If cursor is above the viewport, scroll up
 	if m.cursor.Row < m.viewport.YOffset() {
 		m.viewport.SetYOffset(m.cursor.Row)
@@ -34,7 +34,7 @@ func (m *editorModel) ensureCursorVisible() {
 
 // adjustCursorPosition ensures the cursor stays within valid bounds
 // Has different behavior based on the current mode (Insert vs Normal/Visual)
-func (m *editorModel) adjustCursorPosition() {
+func (m *Model) adjustCursorPosition() {
 	// Keep cursor within valid rows
 	if m.cursor.Row < 0 {
 		m.cursor.Row = 0

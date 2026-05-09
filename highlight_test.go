@@ -74,8 +74,7 @@ func TestYankHighlight(t *testing.T) {
 	expectedDuration := 100 * time.Millisecond
 	assert.Equal(t, expectedDuration, highlight.Duration, "Default yank highlight duration should be correct")
 
-	editor := NewEditor(WithContent("Line 1\nLine 2\nLine 3"))
-	model := editor.(*editorModel)
+	model := New(WithContent("Line 1\nLine 2\nLine 3"))
 
 	model.mode = ModeVisual
 	model.visualStart = newCursor(0, 0)

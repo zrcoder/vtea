@@ -39,16 +39,20 @@ The codebase has been organized into modular components:
 - **highlight.go**: Syntax highlighting
 - **styles.go**: UI style definitions
 
-## Usage
+## Two Ways to Use
 
-See the [example](example/) directory for complete examples:
+**`vtea.New()` / `*Model`**: Embed the editor as a component in a larger Bubble Tea application. 
 
-- [basic](example/basic/main.go) - Basic editor usage
+**`vtea.NewEditor()` / `Editor`**: Run the editor as a standalone Bubble Tea program. Use this when you want the editor to be the entire TUI application.
+
+See the [example](example/) directory for complete usage patterns:
+
+- [basic](example/basic/main.go) - Basic standalone editor 
 - [load_content](example/load_content/main.go) - Load content into editor
 - [custom_bindings](example/custom_bindings/main.go) - Custom key bindings
 - [custom_commands](example/custom_commands/main.go) - Custom commands
 - [custom_styling](example/custom_styling/main.go) - Custom styling
-- [embed_widget](example/embed_widget/main.go) - Embed editor in a larger TUI application
+- [embed_widget](example/embed_widget/main.go) - Embed in a larger TUI 
 
 Run any example with:
 

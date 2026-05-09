@@ -20,8 +20,7 @@ func TestCursorBasics(t *testing.T) {
 
 func TestCursorPosition(t *testing.T) {
 	testContent := "Line 1\nLine 2\nLine 3"
-	editor := NewEditor(WithContent(testContent))
-	model := editor.(*editorModel)
+	model := NewEditor(WithContent(testContent))
 
 	model.cursor = newCursor(1, 2)
 	assert.Equal(t, 1, model.cursor.Row, "Cursor row should be 1")
@@ -41,8 +40,7 @@ func TestViewportCursorVisibility(t *testing.T) {
 		testContent.WriteString("Line " + string(rune('0'+i%10)) + "\n")
 	}
 
-	editor := NewEditor(WithContent(testContent.String()))
-	model := editor.(*editorModel)
+	model := NewEditor(WithContent(testContent.String()))
 
 	model.width = 80
 	model.height = 20
@@ -64,8 +62,7 @@ func TestViewportCursorVisibility(t *testing.T) {
 
 func TestCursorBoundaryConditions(t *testing.T) {
 	testContent := "Line 1\nLine 2\nLine 3"
-	editor := NewEditor(WithContent(testContent))
-	model := editor.(*editorModel)
+	model := NewEditor(WithContent(testContent))
 
 	// Test cursor past end of line
 	model.cursor = newCursor(0, 20)

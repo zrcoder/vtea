@@ -11,27 +11,26 @@ import (
 
 func TestEditorIntegration(t *testing.T) {
 	initialContent := "Hello, world!"
-	editor := NewEditor(WithContent(initialContent))
+	model := New(WithContent(initialContent))
 
-	assert.Equal(t, ModeNormal, editor.GetMode(), "Initial mode should be Normal")
+	assert.Equal(t, ModeNormal, model.GetMode(), "Initial mode should be Normal")
 
-	buffer := editor.GetBuffer()
+	buffer := model.GetBuffer()
 	assert.Equal(t, initialContent, buffer.Text(), "Buffer content should match initial content")
 
-	editor.SetMode(ModeInsert)
-	assert.Equal(t, ModeInsert, editor.GetMode(), "Mode should be Insert after setting")
+	model.SetMode(ModeInsert)
+	assert.Equal(t, ModeInsert, model.GetMode(), "Mode should be Insert after setting")
 
-	model := editor.(*editorModel)
 	model.buffer.insertAt(0, 13, " This is a test.")
 
 	expectedContent := "Hello, world! This is a test."
 	assert.Equal(t, expectedContent, buffer.Text(), "Buffer content should match expected after insertion")
 
-	editor.SetMode(ModeNormal)
-	assert.Equal(t, ModeNormal, editor.GetMode(), "Mode should be Normal after setting")
+	model.SetMode(ModeNormal)
+	assert.Equal(t, ModeNormal, model.GetMode(), "Mode should be Normal after setting")
 
 	testStatusMsg := "Test status"
-	cmd := editor.SetStatusMessage(testStatusMsg)
+	cmd := model.SetStatusMessage(testStatusMsg)
 	cmd()
 
 	assert.Equal(t, testStatusMsg, model.statusMessage, "Status message should match set message")
@@ -43,8 +42,7 @@ func TestViewportIntegration(t *testing.T) {
 		content.WriteString("Line " + string(rune('A'+i%26)) + "\n")
 	}
 
-	editor := NewEditor(WithContent(content.String()))
-	model := editor.(*editorModel)
+	model := New(WithContent(content.String()))
 
 	model.width = 80
 	model.height = 20
@@ -62,11 +60,10 @@ func TestViewportIntegration(t *testing.T) {
 }
 
 func TestKeyBindingsIntegration(t *testing.T) {
-	editor := NewEditor()
-	model := editor.(*editorModel)
+	model := New()
 
 	testBindingCalled := false
-	editor.AddBinding(KeyBinding{
+	model.AddBinding(KeyBinding{
 		Key:         "ctrl+t",
 		Mode:        ModeNormal,
 		Description: "Test binding",
@@ -88,11 +85,10 @@ func TestKeyBindingsIntegration(t *testing.T) {
 }
 
 func TestCommandsIntegration(t *testing.T) {
-	editor := NewEditor()
-	model := editor.(*editorModel)
+	model := New()
 
 	commandCalled := false
-	editor.AddCommand("test", func(b Buffer, args []string) tea.Cmd {
+	model.AddCommand("test", func(b Buffer, args []string) tea.Cmd {
 		commandCalled = true
 		if len(args) > 0 && args[0] == "arg" {
 			return nil
@@ -109,15 +105,14 @@ func TestCommandsIntegration(t *testing.T) {
 func TestClearIntegration(t *testing.T) {
 	// Create editor with initial content
 	initialContent := "Line 1\nLine 2\nLine 3"
-	editor := NewEditor(WithContent(initialContent))
-	buffer := editor.GetBuffer()
+	model := New(WithContent(initialContent))
+	buffer := model.GetBuffer()
 
 	// Verify initial content
 	assert.Equal(t, initialContent, buffer.Text(), "Buffer should have initial content")
 	assert.Equal(t, 3, buffer.LineCount(), "Buffer should have 3 lines initially")
 
 	// Set cursor to a non-zero position
-	model := editor.(*editorModel)
 	model.cursor = newCursor(1, 3)
 
 	// Clear the buffer using the Clear method
@@ -143,14 +138,13 @@ func TestClearIntegration(t *testing.T) {
 func TestResetIntegration(t *testing.T) {
 	// Create editor with initial content
 	initialContent := "Initial content"
-	editor := NewEditor(WithContent(initialContent))
-	buffer := editor.GetBuffer()
+	model := New(WithContent(initialContent))
+	buffer := model.GetBuffer()
 
 	// Verify initial content
 	assert.Equal(t, initialContent, buffer.Text(), "Buffer should have initial content")
 
 	// Make changes to the editor
-	model := editor.(*editorModel)
 	buffer.InsertAt(0, 0, "Modified ") // Modify the content
 	model.cursor = newCursor(0, 9)     // Move cursor after "Modified "
 
@@ -160,7 +154,7 @@ func TestResetIntegration(t *testing.T) {
 	assert.Equal(t, 9, model.cursor.Col, "Cursor column should be 9")
 
 	// Reset the editor
-	resetCmd := editor.Reset()
+	resetCmd := model.Reset()
 	if resetCmd != nil {
 		resetCmd()
 	}
@@ -177,7 +171,7 @@ func TestResetIntegration(t *testing.T) {
 	assert.Equal(t, "New Initial content", buffer.Text(), "Buffer should accept changes after reset")
 
 	// Reset again
-	resetCmd = editor.Reset()
+	resetCmd = model.Reset()
 	if resetCmd != nil {
 		resetCmd()
 	}

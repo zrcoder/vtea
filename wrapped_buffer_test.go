@@ -8,8 +8,7 @@ import (
 )
 
 func TestWrappedBuffer(t *testing.T) {
-	editor := NewEditor(WithContent("Line 1\nLine 2\nLine 3"))
-	model := editor.(*editorModel)
+	model := NewEditor(WithContent("Line 1\nLine 2\nLine 3"))
 	wrapped := model.GetBuffer()
 
 	assert.Equal(t, "Line 1\nLine 2\nLine 3", wrapped.Text(), "WrappedBuffer Text() should return underlying buffer content")
@@ -21,8 +20,7 @@ func TestWrappedBuffer(t *testing.T) {
 }
 
 func TestWrappedBufferModifications(t *testing.T) {
-	editor := NewEditor(WithContent("Initial content"))
-	model := editor.(*editorModel)
+	model := NewEditor(WithContent("Initial content"))
 	wrapped := model.GetBuffer()
 
 	wrapped.InsertAt(0, 7, " modified")
@@ -43,8 +41,7 @@ func TestWrappedBufferModifications(t *testing.T) {
 }
 
 func TestWrappedBufferUndoRedo(t *testing.T) {
-	editor := NewEditor(WithContent("First line\nSecond line\nThird line"))
-	model := editor.(*editorModel)
+	model := NewEditor(WithContent("First line\nSecond line\nThird line"))
 	wrapped := model.GetBuffer()
 
 	// Get range from underlying buffer
@@ -73,8 +70,7 @@ func TestWrappedBufferUndoRedo(t *testing.T) {
 }
 
 func TestWrappedBufferCanUndoRedo(t *testing.T) {
-	editor := NewEditor(WithContent("Initial state"))
-	model := editor.(*editorModel)
+	model := NewEditor(WithContent("Initial state"))
 	wrapped := model.GetBuffer()
 
 	// Test CanUndo, CanRedo

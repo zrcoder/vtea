@@ -5,13 +5,13 @@ import tea "charm.land/bubbletea/v2"
 
 // Command is a function that performs an action on the editor model
 // and returns a bubbletea command
-type Command func(m *editorModel) tea.Cmd
+type Command func(m *Model) tea.Cmd
 
 // KeyBinding represents a key binding that can be registered with the editor
 // This is the public API for adding key bindings
 type KeyBinding struct {
 	Key         string               // The key sequence to bind (e.g. "j", "dd", "ctrl+f")
-	Mode        EditorMode           // Which editor mode this binding is active in
+	Mode        Mode                 // Which editor mode this binding is active in
 	Description string               // Human-readable description for help screens
 	Handler     func(Buffer) tea.Cmd // Function to execute when the key is pressed
 }
@@ -27,10 +27,10 @@ type UndoRedoMsg struct {
 // internalKeyBinding is the internal representation of a key binding
 // used by the binding registry
 type internalKeyBinding struct {
-	Key     string     // The key sequence
-	Command Command    // The command function to execute
-	Mode    EditorMode // The editor mode this binding is active in
-	Help    string     // Help text describing the binding
+	Key     string  // The key sequence
+	Command Command // The command function to execute
+	Mode    Mode    // The editor mode this binding is active in
+	Help    string  // Help text describing the binding
 }
 
 // CommandRegistry stores and manages commands that can be executed in command mode
@@ -42,12 +42,12 @@ type CommandRegistry struct {
 // BindingRegistry manages key bindings for the editor
 // It supports exact matches and prefix detection for multi-key sequences
 type BindingRegistry struct {
-	// Maps EditorMode -> key sequence -> binding
-	exactBindings map[EditorMode]map[string]internalKeyBinding
+	// Maps Mode -> key sequence -> binding
+	exactBindings map[Mode]map[string]internalKeyBinding
 
-	// Maps EditorMode -> key prefix -> true
+	// Maps Mode -> key prefix -> true
 	// Used to detect if a key sequence could be a prefix of a longer binding
-	prefixBindings map[EditorMode]map[string]bool
+	prefixBindings map[Mode]map[string]bool
 
 	// List of all bindings for help display
 	allBindings []internalKeyBinding
@@ -56,8 +56,8 @@ type BindingRegistry struct {
 // newBindingRegistry creates a new empty binding registry
 func newBindingRegistry() *BindingRegistry {
 	return &BindingRegistry{
-		exactBindings:  make(map[EditorMode]map[string]internalKeyBinding),
-		prefixBindings: make(map[EditorMode]map[string]bool),
+		exactBindings:  make(map[Mode]map[string]internalKeyBinding),
+		prefixBindings: make(map[Mode]map[string]bool),
 		allBindings:    []internalKeyBinding{},
 	}
 }
@@ -71,7 +71,7 @@ func newCommandRegistry() *CommandRegistry {
 
 // Add registers a new key binding with the registry
 // It automatically builds prefix maps for multi-key sequences
-func (r *BindingRegistry) Add(key string, cmd Command, mode EditorMode, help string) {
+func (r *BindingRegistry) Add(key string, cmd Command, mode Mode, help string) {
 	binding := internalKeyBinding{
 		Key:     key,
 		Command: cmd,
@@ -103,7 +103,7 @@ func (r *BindingRegistry) Add(key string, cmd Command, mode EditorMode, help str
 
 // FindExact looks for an exact match for the given key sequence in the specified mode
 // It can handle numeric prefixes by ignoring them when looking for the command
-func (r *BindingRegistry) FindExact(keySeq string, mode EditorMode) *internalKeyBinding {
+func (r *BindingRegistry) FindExact(keySeq string, mode Mode) *internalKeyBinding {
 	// Find where the numeric prefix ends (if any)
 	nonDigitStart := 0
 	for i, c := range keySeq {
@@ -138,7 +138,7 @@ func (r *BindingRegistry) FindExact(keySeq string, mode EditorMode) *internalKey
 
 // IsPrefix checks if the key sequence is a prefix of any registered binding
 // This is used to determine if we should wait for more input
-func (r *BindingRegistry) IsPrefix(keySeq string, mode EditorMode) bool {
+func (r *BindingRegistry) IsPrefix(keySeq string, mode Mode) bool {
 	if prefixes, ok := r.prefixBindings[mode]; ok {
 		return prefixes[keySeq]
 	}
@@ -151,7 +151,7 @@ func (r *BindingRegistry) GetAll() []internalKeyBinding {
 }
 
 // GetForMode returns all key bindings for the specified mode
-func (r *BindingRegistry) GetForMode(mode EditorMode) []internalKeyBinding {
+func (r *BindingRegistry) GetForMode(mode Mode) []internalKeyBinding {
 	var result []internalKeyBinding
 	for _, binding := range r.allBindings {
 		if binding.Mode == mode {

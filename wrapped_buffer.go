@@ -7,7 +7,7 @@ import tea "charm.land/bubbletea/v2"
 // This wrapping pattern allows the editor model to expose a buffer interface
 // without exposing its internal state directly
 type wrappedBuffer struct {
-	m *editorModel // Reference to the parent editor model
+	m *Model // Reference to the parent editor model
 }
 
 // Text returns the entire buffer content as a string

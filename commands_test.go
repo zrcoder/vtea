@@ -9,8 +9,7 @@ import (
 )
 
 func TestCommandExecution(t *testing.T) {
-	editor := NewEditor(WithContent("Line 1\nLine 2\nLine 3"))
-	model := editor.(*editorModel)
+	model := New(WithContent("Line 1\nLine 2\nLine 3"))
 
 	// Test yank line command (find binding in registry)
 	binding := model.registry.FindExact("yy", ModeNormal)
@@ -33,8 +32,7 @@ func TestCommandExecution(t *testing.T) {
 }
 
 func TestPasteCommands(t *testing.T) {
-	editor := NewEditor(WithContent("Line 1\nLine 2\nLine 3"))
-	model := editor.(*editorModel)
+	model := New(WithContent("Line 1\nLine 2\nLine 3"))
 
 	// Set up yankBuffer
 	model.yankBuffer = "Yanked content"
@@ -73,8 +71,7 @@ func TestPasteCommands(t *testing.T) {
 }
 
 func TestInsertModeCommands(t *testing.T) {
-	editor := NewEditor(WithContent("Line 1\nLine 2"))
-	model := editor.(*editorModel)
+	model := New(WithContent("Line 1\nLine 2"))
 
 	// Test insert at beginning of line (I command)
 	insertStartBinding := model.registry.FindExact("I", ModeNormal)
@@ -111,8 +108,7 @@ func TestInsertModeCommands(t *testing.T) {
 }
 
 func TestCursorMovementCommands(t *testing.T) {
-	editor := NewEditor(WithContent("Line 1\nLine 2\nLine 3"))
-	model := editor.(*editorModel)
+	model := New(WithContent("Line 1\nLine 2\nLine 3"))
 
 	// Test move down (j)
 	downBinding := model.registry.FindExact("j", ModeNormal)
@@ -149,8 +145,7 @@ func TestCursorMovementCommands(t *testing.T) {
 }
 
 func TestWrappedMovementCommands(t *testing.T) {
-	editor := NewEditor(WithContent("Line 1\nLine 2\nLine 3"))
-	model := editor.(*editorModel)
+	model := New(WithContent("Line 1\nLine 2\nLine 3"))
 
 	// Test move to beginning of line (0)
 	startBinding := model.registry.FindExact("0", ModeNormal)
@@ -188,8 +183,7 @@ func TestWrappedMovementCommands(t *testing.T) {
 }
 
 func TestJumpCommands(t *testing.T) {
-	editor := NewEditor(WithContent("Line 1\nLine 2\nLine 3\nLine 4\nLine 5"))
-	model := editor.(*editorModel)
+	model := New(WithContent("Line 1\nLine 2\nLine 3\nLine 4\nLine 5"))
 
 	// Test move to first line (gg)
 	startDocBinding := model.registry.FindExact("gg", ModeNormal)
@@ -210,12 +204,11 @@ func TestJumpCommands(t *testing.T) {
 }
 
 func TestCommandLineCommands(t *testing.T) {
-	editor := NewEditor()
-	model := editor.(*editorModel)
+	model := New()
 
 	// Register test command
 	cmdExecuted := false
-	model.commands.Register("test", func(m *editorModel) tea.Cmd {
+	model.commands.Register("test", func(m *Model) tea.Cmd {
 		cmdExecuted = true
 		return nil
 	})

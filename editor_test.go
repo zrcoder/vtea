@@ -11,38 +11,36 @@ import (
 
 func TestEditorBasics(t *testing.T) {
 	testContent := "Line 1\nLine 2\nLine 3"
-	editor := NewEditor(WithContent(testContent))
+	model := New(WithContent(testContent))
 
-	assert.Equal(t, ModeNormal, editor.GetMode(), "Initial mode should be Normal")
+	assert.Equal(t, ModeNormal, model.GetMode(), "Initial mode should be Normal")
 
-	buffer := editor.GetBuffer()
+	buffer := model.GetBuffer()
 	assert.Equal(t, testContent, buffer.Text(), "Buffer content should match initial content")
 	assert.Equal(t, 3, buffer.LineCount(), "Buffer should have 3 lines")
 }
 
 func TestEditorModes(t *testing.T) {
-	editor := NewEditor()
+	model := New()
 
-	editor.SetMode(ModeInsert)
-	assert.Equal(t, ModeInsert, editor.GetMode(), "Mode should be Insert")
+	model.SetMode(ModeInsert)
+	assert.Equal(t, ModeInsert, model.GetMode(), "Mode should be Insert")
 
-	editor.SetMode(ModeVisual)
-	assert.Equal(t, ModeVisual, editor.GetMode(), "Mode should be Visual")
+	model.SetMode(ModeVisual)
+	assert.Equal(t, ModeVisual, model.GetMode(), "Mode should be Visual")
 
-	editor.SetMode(ModeCommand)
-	assert.Equal(t, ModeCommand, editor.GetMode(), "Mode should be Command")
+	model.SetMode(ModeCommand)
+	assert.Equal(t, ModeCommand, model.GetMode(), "Mode should be Command")
 
-	editor.SetMode(ModeNormal)
-	assert.Equal(t, ModeNormal, editor.GetMode(), "Mode should be Normal")
+	model.SetMode(ModeNormal)
+	assert.Equal(t, ModeNormal, model.GetMode(), "Mode should be Normal")
 }
 
 func TestEditorKeypressHandling(t *testing.T) {
-	editor := NewEditor()
-	model := editor.(*editorModel)
+	model := New()
 
 	keyMsg := tea.KeyPressMsg{Code: 'i'}
-	updated, _ := model.handleKeypress(keyMsg)
-	model = updated.(*editorModel)
+	model, _ = model.handleKeypress(keyMsg)
 
 	assert.Equal(t, ModeInsert, model.mode, "After pressing 'i' in normal mode, should be in insert mode")
 
@@ -50,16 +48,14 @@ func TestEditorKeypressHandling(t *testing.T) {
 
 	model.mode = ModeInsert
 	keyMsg = tea.KeyPressMsg{Code: tea.KeyEsc}
-	updated2, _ := model.handleKeypress(keyMsg)
-	model = updated2.(*editorModel)
+	model, _ = model.handleKeypress(keyMsg)
 
 	assert.Equal(t, ModeNormal, model.mode, "After pressing Escape in insert mode, should be in normal mode")
 }
 
 func TestEditorCursorMovement(t *testing.T) {
 	testContent := "Line 1\nLine 2\nLine 3"
-	editor := NewEditor(WithContent(testContent))
-	model := editor.(*editorModel)
+	model := New(WithContent(testContent))
 
 	assert.Equal(t, 0, model.cursor.Row, "Initial cursor row should be 0")
 	assert.Equal(t, 0, model.cursor.Col, "Initial cursor column should be 0")
@@ -98,16 +94,15 @@ func TestEditorCursorMovement(t *testing.T) {
 }
 
 func TestEditorInsertDelete(t *testing.T) {
-	editor := NewEditor()
-	model := editor.(*editorModel)
-	buffer := editor.GetBuffer()
+	model := New()
 
-	editor.SetMode(ModeInsert)
+	buffer := model.GetBuffer()
+
+	model.SetMode(ModeInsert)
 
 	for _, ch := range "Hello" {
 		keyMsg := tea.KeyPressMsg{Code: rune(ch)}
-		updated, _ := model.handleKeypress(keyMsg)
-		model = updated.(*editorModel)
+		model, _ = model.handleKeypress(keyMsg)
 	}
 
 	assert.Equal(t, "Hello", buffer.Text(), "Buffer content should be 'Hello'")
@@ -119,19 +114,18 @@ func TestEditorInsertDelete(t *testing.T) {
 }
 
 func TestEditorUndoRedo(t *testing.T) {
-	editor := NewEditor()
-	model := editor.(*editorModel)
-	buffer := editor.GetBuffer()
+	model := New()
 
-	editor.SetMode(ModeInsert)
+	buffer := model.GetBuffer()
+
+	model.SetMode(ModeInsert)
 
 	for _, ch := range "test undo" {
 		keyMsg := tea.KeyPressMsg{Code: rune(ch)}
-		updated, _ := model.handleKeypress(keyMsg)
-		model = updated.(*editorModel)
+		model, _ = model.handleKeypress(keyMsg)
 	}
 
-	editor.SetMode(ModeNormal)
+	model.SetMode(ModeNormal)
 
 	originalContent := buffer.Text()
 
@@ -152,8 +146,7 @@ func TestEditorUndoRedo(t *testing.T) {
 
 func TestEditorVisualMode(t *testing.T) {
 	testContent := "Line 1\nLine 2\nLine 3"
-	editor := NewEditor(WithContent(testContent))
-	model := editor.(*editorModel)
+	model := New(WithContent(testContent))
 
 	vBinding := model.registry.FindExact("v", ModeNormal)
 	require.NotNil(t, vBinding, "Binding for 'v' should exist")
@@ -178,11 +171,10 @@ func TestEditorVisualMode(t *testing.T) {
 }
 
 func TestEditorStatusMessage(t *testing.T) {
-	editor := NewEditor()
-	model := editor.(*editorModel)
+	model := New()
 
 	testMsg := "Test status message"
-	cmd := editor.SetStatusMessage(testMsg)
+	cmd := model.SetStatusMessage(testMsg)
 
 	cmd()
 
@@ -190,13 +182,12 @@ func TestEditorStatusMessage(t *testing.T) {
 }
 
 func TestEditorCommandMode(t *testing.T) {
-	editor := NewEditor()
-	model := editor.(*editorModel)
+	model := New()
 
 	assert.True(t, model.enableCommandMode, "Command mode should be enabled by default")
 
 	testCmdCalled := false
-	editor.AddCommand("test", func(b Buffer, args []string) tea.Cmd {
+	model.AddCommand("test", func(b Buffer, args []string) tea.Cmd {
 		testCmdCalled = true
 		return nil
 	})
@@ -210,19 +201,18 @@ func TestEditorCommandMode(t *testing.T) {
 
 	model.commandBuffer = "test"
 
-	updated, _ := model.Update(CommandMsg{Command: "test"})
-	model = updated.(*editorModel)
+	model, _ = model.Update(CommandMsg{Command: "test"})
 
 	assert.True(t, testCmdCalled, "Command 'test' should have been called")
 	assert.Equal(t, ModeNormal, model.mode, "After command execution, should return to normal mode")
 }
 
 func TestEditorMultipleBindings(t *testing.T) {
-	editor := NewEditor()
+	model := New()
 
 	bindingCalled := false
 
-	editor.AddBinding(KeyBinding{
+	model.AddBinding(KeyBinding{
 		Key:         "ctrl+t",
 		Mode:        ModeNormal,
 		Description: "Test binding",
@@ -232,7 +222,6 @@ func TestEditorMultipleBindings(t *testing.T) {
 		},
 	})
 
-	model := editor.(*editorModel)
 	model.Init()
 
 	keyMsg := tea.KeyPressMsg{Code: 't', Mod: tea.ModCtrl}
@@ -244,8 +233,7 @@ func TestEditorMultipleBindings(t *testing.T) {
 
 func TestEditorCountPrefixCommands(t *testing.T) {
 	testContent := "Line 1\nLine 2\nLine 3\nLine 4\nLine 5"
-	editor := NewEditor(WithContent(testContent))
-	model := editor.(*editorModel)
+	model := New(WithContent(testContent))
 
 	model.countPrefix = 3
 
@@ -258,15 +246,13 @@ func TestEditorCountPrefixCommands(t *testing.T) {
 }
 
 func TestEditorWindowResize(t *testing.T) {
-	editor := NewEditor()
-	model := editor.(*editorModel)
+	model := New()
 
 	assert.Equal(t, 0, model.width, "Initial window width should be 0")
 	assert.Equal(t, 0, model.height, "Initial window height should be 0")
 
 	newWidth, newHeight := 80, 24
-	updated2, _ := model.SetSize(newWidth, newHeight)
-	model = updated2.(*editorModel)
+	model, _ = model.SetSize(newWidth, newHeight)
 
 	assert.Equal(t, newWidth, model.width, "Window width should be updated to new width")
 
@@ -276,9 +262,9 @@ func TestEditorWindowResize(t *testing.T) {
 
 func TestEditorYankPaste(t *testing.T) {
 	testContent := "Line 1\nLine 2\nLine 3"
-	editor := NewEditor(WithContent(testContent))
-	model := editor.(*editorModel)
-	buffer := editor.GetBuffer()
+	model := New(WithContent(testContent))
+
+	buffer := model.GetBuffer()
 
 	vBinding := model.registry.FindExact("v", ModeNormal)
 	require.NotNil(t, vBinding, "Binding for 'v' should exist")
@@ -311,15 +297,13 @@ func MockCursorBlinkMsg() tea.Msg {
 }
 
 func TestEditorCursorBlink(t *testing.T) {
-	editor := NewEditor()
-	model := editor.(*editorModel)
+	model := New()
 
 	initialBlink := model.cursorBlink
 
 	model.lastBlinkTime = time.Now().Add(-2 * model.blinkInterval)
 
-	updated2, _ := model.Update(MockCursorBlinkMsg())
-	model = updated2.(*editorModel)
+	model, _ = model.Update(MockCursorBlinkMsg())
 
 	assert.NotEqual(t, initialBlink, model.cursorBlink, "Cursor blink state should have toggled")
 }
