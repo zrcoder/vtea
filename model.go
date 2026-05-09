@@ -254,6 +254,17 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	return m, cmd
 }
 
+// Value returns the entire buffer content as a string
+func (m *Model) Value() string {
+	return m.GetBuffer().Text()
+}
+
+// SetValue sets the editor's content and reset the editor
+func (m *Model) SetValue(content string) {
+	m.initialContent = content
+	m.Reset()
+}
+
 // GetSelectionBoundary returns the start and end cursors of the current selection
 // in visual mode. It ensures the start cursor is always before the end cursor.
 func (m *Model) GetSelectionBoundary() (Cursor, Cursor) {
@@ -278,7 +289,7 @@ func (m *Model) GetSelectionBoundary() (Cursor, Cursor) {
 	return start, end
 }
 
-// SetSize updates the editor's dimensions when the terminal window is resized
+// SetSize updates the editor's dimensions with width and height
 func (m *Model) SetSize(width, height int) (*Model, tea.Cmd) {
 	m.width = width
 	m.height = height
