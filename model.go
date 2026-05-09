@@ -172,14 +172,14 @@ func New(opts ...EditorOption) *Model {
 	// Sync viewport with buffer content for proper scrolling
 	m.viewport.SetContentLines(m.buffer.Lines())
 
-	go func() {
-		if cpErr != nil {
+	if cpErr == nil {
+		go func() {
 			ch := clipboard.Watch(context.Background(), clipboard.FmtText)
 			for data := range ch {
 				m.yankBuffer = string(data)
 			}
-		}
-	}()
+		}()
+	}
 
 	// Register default key bindings
 	registerBindings(m)

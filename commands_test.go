@@ -107,6 +107,107 @@ func TestInsertModeCommands(t *testing.T) {
 	assert.Equal(t, 0, model.cursor.Col, "o command should position cursor at start of new line")
 }
 
+func TestOpenLineBelowIndentation(t *testing.T) {
+	model := New(WithContent("    indented line\nnext"))
+
+	openBelowBinding := model.registry.FindExact("o", ModeNormal)
+	require.NotNil(t, openBelowBinding, "Binding for 'o' not found")
+
+	model.mode = ModeNormal
+	model.cursor = newCursor(0, 5)
+	openBelowBinding.Command(model)
+
+	assert.Equal(t, "    indented line", model.buffer.Line(0))
+	assert.Equal(t, "    ", model.buffer.Line(1), "o should preserve leading whitespace")
+}
+
+func TestOpenLineAboveIndentation(t *testing.T) {
+	model := New(WithContent("    first\n    second"))
+
+	openAboveBinding := model.registry.FindExact("O", ModeNormal)
+	require.NotNil(t, openAboveBinding, "Binding for 'O' not found")
+
+	model.mode = ModeNormal
+	model.cursor = newCursor(1, 0) // on line "    second"
+	openAboveBinding.Command(model)
+
+	assert.Equal(t, 3, model.buffer.lineCount(), "O command should add a new line")
+	// O inserts new line ABOVE cursor row (row 1), using indentation from line ABOVE cursor
+	// Line(0) = "    first" (unchanged), Line(1) = new line with indent from line 0, Line(2) = "    second" (shifted)
+	assert.Equal(t, "    first", model.buffer.Line(0), "Line 0 unchanged")
+	assert.Equal(t, "    ", model.buffer.Line(1), "O should insert line with indentation from above")
+	assert.Equal(t, "    second", model.buffer.Line(2), "Line 2 shifted down")
+	assert.Equal(t, 1, model.cursor.Row, "O should position cursor at new line row")
+}
+
+func TestInsertEnterKeyIndentation(t *testing.T) {
+	t.Run("preserves leading whitespace when splitting line", func(t *testing.T) {
+		model := New(WithContent("    some code here"))
+
+		enterBinding := model.registry.FindExact("enter", ModeInsert)
+		require.NotNil(t, enterBinding, "Enter binding not found in insert mode")
+
+		model.mode = ModeInsert
+		model.cursor = newCursor(0, 8) // cursor on the space after "some"
+		enterBinding.Command(model)
+
+		assert.Equal(t, 2, model.buffer.lineCount())
+		assert.Equal(t, "    some", model.buffer.Line(0), "First line ends at cursor")
+		// New line: leading whitespace (4 spaces) + remainder (" code here")
+		assert.Equal(t, "     code here", model.buffer.Line(1), "New line: indentation + remainder")
+		assert.Equal(t, 1, model.cursor.Row)
+		assert.Equal(t, 4, model.cursor.Col, "Cursor should be positioned after leading whitespace")
+	})
+
+	t.Run("preserves tab indentation as spaces", func(t *testing.T) {
+		model := New(WithContent("        if true {"))
+
+		enterBinding := model.registry.FindExact("enter", ModeInsert)
+		require.NotNil(t, enterBinding)
+
+		model.mode = ModeInsert
+		model.cursor = newCursor(0, 8) // at position 8, right after the 8 leading spaces
+		enterBinding.Command(model)
+
+		// Line(0) = "        " (8 spaces, text before cursor)
+		// Line(1) = "        if true {" (8 leading spaces + "if true {")
+		assert.Equal(t, "        ", model.buffer.Line(0))
+		assert.Equal(t, "        if true {", model.buffer.Line(1))
+		assert.Equal(t, 8, model.cursor.Col, "Cursor should be after 8 leading spaces")
+	})
+
+	t.Run("cursor at end of indented line adds only indentation", func(t *testing.T) {
+		model := New(WithContent("    completed line"))
+
+		enterBinding := model.registry.FindExact("enter", ModeInsert)
+		require.NotNil(t, enterBinding)
+
+		model.mode = ModeInsert
+		model.cursor = newCursor(0, 18) // past last char = end of line (18 chars total)
+		enterBinding.Command(model)
+
+		assert.Equal(t, "    completed line", model.buffer.Line(0))
+		assert.Equal(t, "    ", model.buffer.Line(1), "New line should have only the indentation")
+		assert.Equal(t, 1, model.cursor.Row)
+		assert.Equal(t, 4, model.cursor.Col)
+	})
+
+	t.Run("unindented line starts at column 0", func(t *testing.T) {
+		model := New(WithContent("no indent here"))
+
+		enterBinding := model.registry.FindExact("enter", ModeInsert)
+		require.NotNil(t, enterBinding)
+
+		model.mode = ModeInsert
+		model.cursor = newCursor(0, 5)
+		enterBinding.Command(model)
+
+		assert.Equal(t, "no in", model.buffer.Line(0))
+		assert.Equal(t, "dent here", model.buffer.Line(1), "New line should have no leading whitespace")
+		assert.Equal(t, 0, model.cursor.Col)
+	})
+}
+
 func TestCursorMovementCommands(t *testing.T) {
 	model := New(WithContent("Line 1\nLine 2\nLine 3"))
 

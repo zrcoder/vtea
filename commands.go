@@ -236,20 +236,37 @@ func insertAtStartOfLine(model *Model) tea.Cmd {
 func openLineBelow(model *Model) tea.Cmd {
 	model.buffer.saveUndoState(model.cursor)
 
-	model.buffer.insertLine(model.cursor.Row+1, "")
+	currentLine := model.buffer.Line(model.cursor.Row)
+	leadingWhitespace := getLeadingWhitespace(currentLine)
+
+	model.buffer.insertLine(model.cursor.Row+1, leadingWhitespace)
+
 	model.cursor.Row++
-	model.cursor.Col = 0
-	model.ensureCursorVisible()
+	model.cursor.Col = len(leadingWhitespace)
+	model.desiredCol = model.cursor.Col
 	return switchMode(model, ModeInsert)
 }
 
 func openLineAbove(model *Model) tea.Cmd {
 	model.buffer.saveUndoState(model.cursor)
 
-	model.buffer.insertLine(model.cursor.Row, "")
-	model.cursor.Col = 0
-	model.ensureCursorVisible()
+	currentLine := model.buffer.Line(model.cursor.Row)
+	leadingWhitespace := getLeadingWhitespace(currentLine)
+
+	model.buffer.insertLine(model.cursor.Row, leadingWhitespace)
+
+	model.cursor.Col = len(leadingWhitespace)
+	model.desiredCol = model.cursor.Col
 	return switchMode(model, ModeInsert)
+}
+
+func getLeadingWhitespace(line string) string {
+	for i, ch := range line {
+		if ch != ' ' && ch != '\t' {
+			return line[:i]
+		}
+	}
+	return line
 }
 
 func insertCharacter(model *Model, char string) (*Model, tea.Cmd) {
@@ -300,16 +317,21 @@ func handleInsertEnterKey(m *Model) tea.Cmd {
 	m.buffer.saveUndoState(m.cursor)
 
 	currentLine := m.buffer.Line(m.cursor.Row)
-	newLine := ""
+	leadingWhitespace := getLeadingWhitespace(currentLine)
+	var newLine string
 
 	if m.cursor.Col < len(currentLine) {
-		newLine = currentLine[m.cursor.Col:]
+		newLine = leadingWhitespace + currentLine[m.cursor.Col:]
 		m.buffer.setLine(m.cursor.Row, currentLine[:m.cursor.Col])
+		m.cursor.Col = len(leadingWhitespace)
+	} else {
+		newLine = leadingWhitespace
+		m.cursor.Col = len(leadingWhitespace)
 	}
 
 	m.buffer.insertLine(m.cursor.Row+1, newLine)
+
 	m.cursor.Row++
-	m.cursor.Col = 0
 	m.ensureCursorVisible()
 	return nil
 }
