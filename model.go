@@ -62,6 +62,8 @@ type Model struct {
 
 	countPrefix int // Numeric prefix for commands like "10j"
 
+	replacePending bool // When true, the next keypress replaces the character at cursor
+
 	relativeNumbers bool // Whether to show relative line numbers
 
 	viewport        viewport.Model // For scrolling
@@ -158,6 +160,7 @@ func New(opts ...EditorOption) *Model {
 		selectedStyle:          options.SelectedStyle,
 		relativeNumbers:        options.RelativeNumbers,
 		countPrefix:            1,
+		replacePending:         false,
 
 		highlighter:    newSyntaxHighlighter(options.DefaultSyntaxTheme, options.FileName),
 		yankHighlight:  newYankHighlight(),
@@ -319,6 +322,28 @@ func (m *Model) SetSize(width, height int) (*Model, tea.Cmd) {
 func (m *Model) handleKeypress(msg tea.KeyPressMsg) (*Model, tea.Cmd) {
 	switch m.mode {
 	case ModeNormal:
+		// When replaceChar (r) was pressed, the next key is the replacement character
+		if m.replacePending {
+			m.replacePending = false
+			lineLen := m.buffer.lineLength(m.cursor.Row)
+			if lineLen > 0 && m.cursor.Col < lineLen {
+				char := msg.String()
+				if char == "space" {
+					char = " "
+				}
+				if len(char) == 1 {
+					m.buffer.saveUndoState(m.cursor)
+					line := m.buffer.Line(m.cursor.Row)
+					runes := []rune(line)
+					if m.cursor.Col < len(runes) {
+						runes[m.cursor.Col] = rune(char[0])
+						m.buffer.setLine(m.cursor.Row, string(runes))
+					}
+				}
+			}
+			m.ensureCursorVisible()
+			return m, nil
+		}
 		// Normal mode uses key sequence handling for multi-key commands
 		return m.handlePrefixKeypress(ModeNormal)(msg)
 

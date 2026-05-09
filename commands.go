@@ -60,6 +60,7 @@ func registerBindings(m *Model) {
 	m.registry.Add("v", beginVisualSelection, ModeNormal, "Enter visual mode")
 	m.registry.Add("V", beginVisualLineSelection, ModeNormal, "Enter visual line mode")
 	m.registry.Add("x", deleteCharAtCursor, ModeNormal, "Delete character at cursor")
+	m.registry.Add("r", replaceChar, ModeNormal, "Replace character at cursor")
 	if m.enableCommandMode {
 		m.registry.Add(":", enterModeCommand, ModeNormal, "Enter command mode")
 	}
@@ -522,6 +523,11 @@ func deleteCharAtCursor(model *Model) tea.Cmd {
 			model.cursor.Col = newLineLen - 1
 		}
 	}
+	return nil
+}
+
+func replaceChar(model *Model) tea.Cmd {
+	model.replacePending = true
 	return nil
 }
 

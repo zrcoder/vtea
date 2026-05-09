@@ -227,3 +227,129 @@ func TestCommandLineCommands(t *testing.T) {
 	assert.True(t, cmdExecuted, "Command execution should run registered command")
 	assert.Equal(t, ModeNormal, model.mode, "After command execution, mode should be Normal")
 }
+
+func TestReplaceCharCommand(t *testing.T) {
+	model := New(WithContent("Hello, World!"))
+
+	// Test binding exists
+	rBinding := model.registry.FindExact("r", ModeNormal)
+	require.NotNil(t, rBinding, "Binding for 'r' not found")
+	assert.Equal(t, "r", rBinding.Key, "Expected binding key 'r'")
+
+	// Test that replaceChar sets replacePending
+	model.cursor = newCursor(0, 4) // cursor at 'o' in "Hello"
+	model.replacePending = false
+	rBinding.Command(model)
+	assert.True(t, model.replacePending, "replaceChar should set replacePending to true")
+
+	// Next keypress: replace 'o' with 'a'
+	model.handleKeypress(tea.KeyPressMsg(tea.Key{Text: "a", Code: 'a'}))
+	assert.False(t, model.replacePending, "replacePending should be cleared after replacement")
+	assert.Equal(t, "Hella, World!", model.buffer.text(), "Character at cursor should be replaced")
+	assert.Equal(t, 4, model.cursor.Col, "Cursor column should remain at replaced position")
+	assert.Equal(t, 0, model.cursor.Row, "Cursor row should remain unchanged")
+}
+
+func TestReplaceCharEdgeCases(t *testing.T) {
+	t.Run("replace at start of line", func(t *testing.T) {
+		model := New(WithContent("Hello"))
+		rBinding := model.registry.FindExact("r", ModeNormal)
+		require.NotNil(t, rBinding)
+
+		model.cursor = newCursor(0, 0)
+		rBinding.Command(model)
+		model.handleKeypress(tea.KeyPressMsg(tea.Key{Text: "X", Code: 'X'}))
+
+		assert.Equal(t, "Xello", model.buffer.text())
+	})
+
+	t.Run("replace at last character", func(t *testing.T) {
+		model := New(WithContent("Hello"))
+		rBinding := model.registry.FindExact("r", ModeNormal)
+		require.NotNil(t, rBinding)
+
+		model.cursor = newCursor(0, 4)
+		rBinding.Command(model)
+		model.handleKeypress(tea.KeyPressMsg(tea.Key{Text: "!", Code: '!'}))
+
+		assert.Equal(t, "Hell!", model.buffer.text())
+	})
+
+	t.Run("replace on empty line does nothing", func(t *testing.T) {
+		model := New(WithContent(""))
+		rBinding := model.registry.FindExact("r", ModeNormal)
+		require.NotNil(t, rBinding)
+
+		model.cursor = newCursor(0, 0)
+		rBinding.Command(model)
+		assert.True(t, model.replacePending, "replaceChar should set replacePending")
+
+		model.handleKeypress(tea.KeyPressMsg(tea.Key{Text: "a", Code: 'a'}))
+		assert.False(t, model.replacePending, "replacePending should be cleared")
+		assert.Equal(t, "", model.buffer.text(), "Empty line should remain unchanged")
+	})
+
+	t.Run("pressing esc after r cancels replace", func(t *testing.T) {
+		model := New(WithContent("Hello"))
+		rBinding := model.registry.FindExact("r", ModeNormal)
+		require.NotNil(t, rBinding)
+
+		model.cursor = newCursor(0, 2)
+		rBinding.Command(model)
+		assert.True(t, model.replacePending)
+
+		model.handleKeypress(tea.KeyPressMsg(tea.Key{Code: tea.KeyEscape}))
+		assert.False(t, model.replacePending, "replacePending should be cleared by esc")
+		assert.Equal(t, "Hello", model.buffer.text(), "Content should not change")
+	})
+
+	t.Run("replace with space", func(t *testing.T) {
+		model := New(WithContent("Hello-World"))
+		rBinding := model.registry.FindExact("r", ModeNormal)
+		require.NotNil(t, rBinding)
+
+		model.cursor = newCursor(0, 5) // cursor at '-'
+		rBinding.Command(model)
+		model.handleKeypress(tea.KeyPressMsg(tea.Key{Code: tea.KeySpace}))
+
+		assert.Equal(t, "Hello World", model.buffer.text(), "Hyphen should be replaced with space")
+	})
+
+	t.Run("chained replace operations", func(t *testing.T) {
+		model := New(WithContent("cat"))
+		rBinding := model.registry.FindExact("r", ModeNormal)
+		require.NotNil(t, rBinding)
+
+		model.cursor = newCursor(0, 0)
+		rBinding.Command(model)
+		model.handleKeypress(tea.KeyPressMsg(tea.Key{Text: "b", Code: 'b'}))
+		assert.Equal(t, "bat", model.buffer.text())
+
+		model.cursor = newCursor(0, 2)
+		rBinding.Command(model)
+		model.handleKeypress(tea.KeyPressMsg(tea.Key{Text: "g", Code: 'g'}))
+		assert.Equal(t, "bag", model.buffer.text())
+	})
+
+	t.Run("replace supports undo", func(t *testing.T) {
+		model := New(WithContent("Hello"))
+		rBinding := model.registry.FindExact("r", ModeNormal)
+		require.NotNil(t, rBinding)
+
+		model.cursor = newCursor(0, 0)
+		rBinding.Command(model)
+		model.handleKeypress(tea.KeyPressMsg(tea.Key{Text: "Y", Code: 'Y'}))
+
+		assert.Equal(t, "Yello", model.buffer.text())
+
+		// Undo
+		undoBinding := model.registry.FindExact("u", ModeNormal)
+		require.NotNil(t, undoBinding)
+		cmd := undoBinding.Command(model)
+		if cmd != nil {
+			model.Update(cmd())
+		}
+
+		assert.Equal(t, "Hello", model.buffer.text(), "Undo should revert the replace")
+	})
+}
