@@ -19,3 +19,11 @@ func (e Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	e.Model = m
 	return e, cmd
 }
+
+func (e Editor) View() tea.View {
+	view := tea.NewView(e.Model.View())
+	if e.Model.fullScreen {
+		view.AltScreen = true
+	}
+	return view
+}

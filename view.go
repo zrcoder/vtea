@@ -7,7 +7,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
 
@@ -72,9 +71,8 @@ func renderLineWithTabs(line string) string {
 	return sb.String()
 }
 
-// View renders the editor and returns it as a tea.View
-// This is part of the bubbletea.Model interface
-func (m *Model) View() tea.View {
+// View renders the editor and returns it as a string
+func (m *Model) View() string {
 	// Build components from top to bottom
 	components := []string{
 		m.renderContent(), // Main editor content
@@ -84,17 +82,10 @@ func (m *Model) View() tea.View {
 	}
 
 	// Join all components vertically
-	v := tea.NewView(lipgloss.JoinVertical(
+	return lipgloss.JoinVertical(
 		lipgloss.Top,
 		components...,
-	))
-
-	// Set alt screen if full screen mode is enabled
-	if m.fullScreen {
-		v.AltScreen = true
-	}
-
-	return v
+	)
 }
 
 func (m *Model) renderContent() string {

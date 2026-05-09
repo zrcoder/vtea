@@ -69,7 +69,7 @@ func (m model) View() tea.View {
 		lipgloss.Center,
 		m.sample,
 		"",
-		m.editor.View().Content,
+		m.editor.View(),
 	))
 	view.AltScreen = true
 	return view
