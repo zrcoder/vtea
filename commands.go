@@ -7,8 +7,6 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-
-	"golang.design/x/clipboard"
 )
 
 // CommandFn is a function that can be executed when a command is run in command mode
@@ -176,7 +174,6 @@ func deleteToEndOfLine(model *Model) tea.Cmd {
 		end := Cursor{Row: row, Col: len(line) - 1}
 
 		model.yankBuffer = model.buffer.deleteRange(start, end)
-		clipboard.Write(clipboard.FmtText, []byte(model.yankBuffer))
 	}
 
 	return nil
@@ -555,7 +552,6 @@ func replaceChar(model *Model) tea.Cmd {
 
 func setupYankHighlight(model *Model, start, end Cursor, text string, isLinewise bool) {
 	model.yankBuffer = text
-	clipboard.Write(clipboard.FmtText, []byte(model.yankBuffer))
 	model.statusMessage = fmt.Sprintf("yanked %d characters", len(text))
 	model.yankHighlight.Start = start
 	model.yankHighlight.End = end
@@ -585,7 +581,6 @@ func deleteLine(model *Model) tea.Cmd {
 	row := model.cursor.Row
 	lineContent := model.buffer.Line(row)
 	model.yankBuffer = "\n" + lineContent
-	clipboard.Write(clipboard.FmtText, []byte(model.yankBuffer))
 
 	model.buffer.deleteLine(row)
 
@@ -606,11 +601,7 @@ func deleteLine(model *Model) tea.Cmd {
 
 func pasteAfter(model *Model) tea.Cmd {
 	if model.yankBuffer == "" {
-		data := clipboard.Read(clipboard.FmtText)
-		model.yankBuffer = string(data)
-		if model.yankBuffer == "" {
-			return nil
-		}
+		return nil
 	}
 
 	model.buffer.saveUndoState(model.cursor)
@@ -694,11 +685,7 @@ func pasteAfter(model *Model) tea.Cmd {
 
 func pasteBefore(model *Model) tea.Cmd {
 	if model.yankBuffer == "" {
-		data := clipboard.Read(clipboard.FmtText)
-		model.yankBuffer = string(data)
-		if model.yankBuffer == "" {
-			return nil
-		}
+		return nil
 	}
 
 	model.buffer.saveUndoState(model.cursor)
@@ -764,8 +751,7 @@ func pasteBefore(model *Model) tea.Cmd {
 
 func pasteLineAfter(model *Model) tea.Cmd {
 	if model.yankBuffer == "" {
-		data := clipboard.Read(clipboard.FmtText)
-		model.yankBuffer = string(data)
+		return nil
 	}
 	lines := strings.Split(model.yankBuffer[1:], "\n")
 	row := model.cursor.Row
@@ -782,8 +768,7 @@ func pasteLineAfter(model *Model) tea.Cmd {
 
 func pasteLineBefore(model *Model) tea.Cmd {
 	if model.yankBuffer == "" {
-		data := clipboard.Read(clipboard.FmtText)
-		model.yankBuffer = string(data)
+		return nil
 	}
 	lines := strings.Split(model.yankBuffer[1:], "\n")
 	row := model.cursor.Row
@@ -818,7 +803,6 @@ func deleteVisualSelection(model *Model) tea.Cmd {
 		selectedText = "\n" + selectedText
 	}
 	model.yankBuffer = selectedText
-	clipboard.Write(clipboard.FmtText, []byte(model.yankBuffer))
 
 	model.buffer.deleteRange(start, end)
 
@@ -833,7 +817,6 @@ func replaceVisualSelectionWithYank(model *Model) tea.Cmd {
 	start, end := model.GetSelectionBoundary()
 	oldSelection := model.buffer.deleteRange(start, end)
 	model.yankBuffer = oldSelection
-	clipboard.Write(clipboard.FmtText, []byte(model.yankBuffer))
 
 	model.cursor = start
 
@@ -864,7 +847,6 @@ func performWordOperation(model *Model, operation string) tea.Cmd {
 	}
 
 	model.yankBuffer = word
-	clipboard.Write(clipboard.FmtText, []byte(model.yankBuffer))
 
 	switch operation {
 	case "yank":

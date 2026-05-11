@@ -4,7 +4,6 @@
 package vtea
 
 import (
-	"context"
 	"strconv"
 	"strings"
 	"time"
@@ -12,8 +11,6 @@ import (
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-
-	"golang.design/x/clipboard"
 )
 
 // Mode represents the current mode of the editor
@@ -137,8 +134,6 @@ func New(opts ...EditorOption) *Model {
 		opt(options)
 	}
 
-	cpErr := clipboard.Init()
-
 	m := &Model{
 		buffer:                 newBuffer(options.Content),
 		mode:                   ModeNormal,
@@ -171,15 +166,6 @@ func New(opts ...EditorOption) *Model {
 
 	// Sync viewport with buffer content for proper scrolling
 	m.viewport.SetContentLines(m.buffer.Lines())
-
-	if cpErr == nil {
-		go func() {
-			ch := clipboard.Watch(context.Background(), clipboard.FmtText)
-			for data := range ch {
-				m.yankBuffer = string(data)
-			}
-		}()
-	}
 
 	// Register default key bindings
 	registerBindings(m)
