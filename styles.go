@@ -27,12 +27,12 @@ var (
 
 	// statusStyle defines the appearance of the status bar
 	statusStyle = lipgloss.NewStyle().
-			Foreground(compat.AdaptiveColor{Light: lipgloss.Color("7"), Dark: lipgloss.Color("8")}).
-			Background(compat.AdaptiveColor{Light: lipgloss.Color("8"), Dark: lipgloss.Color("7")})
+			Foreground(compat.AdaptiveColor{Light: lipgloss.Color("242"), Dark: lipgloss.Color("245")}).
+			Background(compat.AdaptiveColor{Light: lipgloss.Color("251"), Dark: lipgloss.Color("237")})
 
 	// cursorStyle defines the appearance of the cursor
 	cursorStyle = lipgloss.NewStyle().
-			Background(compat.AdaptiveColor{Light: lipgloss.Color("252"), Dark: lipgloss.Color("248")}).
+			Background(compat.AdaptiveColor{Light: lipgloss.Color("240"), Dark: lipgloss.Color("248")}).
 			Foreground(compat.AdaptiveColor{Light: lipgloss.Color("0"), Dark: lipgloss.Color("0")})
 
 	// commandStyle defines the appearance of the command line
